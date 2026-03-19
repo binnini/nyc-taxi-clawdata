@@ -13,13 +13,13 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                        AWS Cloud                            │
 │                                                             │
-│  S3 (RODA)              EC2 c7i-flex.large                       │
+│  사용자 S3(임시)          EC2 c7i-flex.large                       │
 │  ┌──────────┐           ┌───────────────────────────────┐   │
 │  │ NYC Taxi │─(1)──────▶│ dbt (최초 1회 적재)            │   │
 │  │ Parquet  │           │                               │   │
 │  │ 2019-23  │           │  warehouse.duckdb (EBS)       │   │
 │  └──────────┘           │  ├── stg_trips                │   │
-│                         │  ├── stg_locations            │   │
+│  (적재 후 삭제)           │  ├── stg_locations            │   │
 │                         │  └── (Phase 2) mart_trips     │   │
 │                         │                               │   │
 │                         │ OpenClaw Gateway              │   │
@@ -238,7 +238,7 @@ nyc_taxi:
 | memory_limit | 3GB | RAM 4GB 중 OS + dbt 프로세스 여유분 1GB 확보 |
 | temp_directory | /tmp/duckdb_spill | 스필 파일 분리로 warehouse.duckdb I/O 경합 최소화 |
 | threads | 2 | c7i-flex.large vCPU 수와 일치, 컨텍스트 스위칭 overhead 방지 |
-| s3_region | us-east-1 | RODA 버킷 리전 고정으로 S3 리다이렉트 오버헤드 방지 |
+| s3_region | ap-northeast-2 | 사용자 S3 버킷(Seoul) 리전 고정 |
 | s3_endpoint | s3.amazonaws.com | 리전 불일치로 인한 인증 스캔 지연 제거 |
 
 ---
@@ -366,9 +366,30 @@ models:
 
 ---
 
-## 7. 미결 사항
+## 7. ADR-09: 데이터 수집 경로 변경 (S3 RODA → CloudShell 우회)
+
+**결정**: CloudShell(Seoul) → 사용자 S3 버킷(ap-northeast-2) → EC2 dbt run → EBS 적재 → S3 삭제
+
+**배경**:
+- `s3://nyc-tlc/` 버킷: 익명/인증 요청 모두 `AccessDenied` (버킷 정책 변경)
+- CloudFront(`d37ci6vzurychx.cloudfront.net`): 서울 리전 EC2 IP 대역 403 Geo-block
+- CloudShell(Seoul)에서는 CloudFront 200 OK 확인 → IP 대역 차이가 원인
+
+**데이터 수집 절차** (1회성):
+```
+CloudShell(Seoul) → curl 다운로드 → aws s3 cp → 사용자 S3 버킷
+EC2 → aws s3 cp → /workspace/nyc-taxi/data/ → dbt run → warehouse.duckdb(EBS)
+사용자 S3 버킷 삭제
+```
+
+**비용**: S3 저장 비용 25GB × $0.025 = $0.63/월 (적재 완료 후 즉시 삭제)
+
+---
+
+## 8. 미결 사항
 
 - [ ] EBS 볼륨 60GB 충분한지 실측 후 확인 (stg_trips 적재 후 파일 크기 기록)
-- [ ] c7i-flex.large 네트워크 대역폭(12.5Gbps)으로 dbt run 적재 시간 실측
-- [ ] Tailscale EC2 + 로컬 설치 및 연결 확인
+- [ ] c7i-flex.large 네트워크 대역폭으로 dbt run 적재 시간 실측
+- [ ] S3 버킷 생성 및 CloudShell 수집 스크립트 실행
+- [ ] EC2 AWS credentials 설정 (S3 접근용)
 - [ ] dbt_utils 패키지 버전 확정

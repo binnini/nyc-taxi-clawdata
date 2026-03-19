@@ -8,7 +8,7 @@ SELECT
     Zone          AS zone_name,
     service_zone
 FROM read_csv_auto(
-    's3://nyc-tlc/misc/taxi_zone_lookup.csv',
+    'https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv',
     header=true
 )
 WHERE LocationID IS NOT NULL

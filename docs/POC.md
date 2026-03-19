@@ -12,9 +12,14 @@ ClawData 에이전트를 통한 데이터 분석 워크플로우를 검증한다
 ## 2. 데이터셋
 
 ### 소스
-- **Registry of Open Data on AWS (RODA)**
-- S3 경로: `s3://nyc-tlc/trip data/`
+- **NYC TLC 공식 배포 (CloudFront)**
+- URL: `https://d37ci6vzurychx.cloudfront.net/trip-data/`
 - 포맷: Parquet
+
+> **접근 제한 이슈 (확인됨)**
+> AWS RODA `s3://nyc-tlc/` 버킷은 현재 외부 익명/인증 접근 모두 차단 상태 (`AccessDenied`).
+> CloudFront URL은 서울 리전 EC2 IP에서 403 Geo-block 발생.
+> **우회 방안**: AWS CloudShell(Seoul)에서 CloudFront 접근 가능 → 사용자 S3 버킷 경유 → EC2 적재 (상세: 아키텍처 섹션 참조)
 
 ### 범위
 - 대상: Yellow Taxi Trip Records
@@ -37,8 +42,9 @@ ClawData 에이전트를 통한 데이터 분석 워크플로우를 검증한다
 | total_amount | 총 결제 금액 |
 
 ### 보조 데이터
-- Taxi Zone Lookup: `s3://nyc-tlc/misc/taxi_zone_lookup.csv`
+- Taxi Zone Lookup: `https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv`
   - LocationID, Borough, Zone, service_zone 포함
+  - CloudFront에서 직접 접근 가능 (EC2 IP 차단 없음 — 소용량 파일)
 
 ---
 
@@ -48,8 +54,8 @@ ClawData 에이전트를 통한 데이터 분석 워크플로우를 검증한다
 |----------|------|------|
 | 인프라 | AWS EC2 c7i-flex.large | 리소스 제약 챌린지, t3.medium 동일 RAM(4GB) |
 | 스토리지 | AWS EBS | EC2 stop 시 데이터 유지 |
-| 원본 데이터 | S3 RODA | 로컬 디스크 불필요, 무료 공개 데이터 |
-| 쿼리 엔진 | DuckDB | 컬럼형 OLAP, S3 직접 쿼리, 설정 zero |
+| 원본 데이터 | CloudFront + 사용자 S3(임시) | S3 RODA 접근 차단으로 CloudShell 우회 경유 |
+| 쿼리 엔진 | DuckDB | 컬럼형 OLAP, HTTPS 직접 쿼리, 설정 zero |
 | 변환 도구 | dbt-duckdb | SQL 모듈화, 테스트, 문서화 |
 | 분석 도구 | ClawData Agent | 자연어 기반 쿼리, 인라인 시각화 |
 
@@ -60,15 +66,24 @@ ClawData 에이전트를 통한 데이터 분석 워크플로우를 검증한다
 ### Phase 1: Staging only
 
 ```
-S3 (NYC Taxi RODA Parquet)
+CloudFront (NYC Taxi Parquet)
+        ↓ AWS CloudShell (Seoul) — EC2 IP 차단 우회
+    사용자 S3 버킷 (ap-northeast-2, 임시)
         ↓ dbt run (최초 1회, table materialization)
     stg_trips        정제된 원본 데이터 (EBS에 적재)
-    stg_locations    존 메타데이터 (EBS에 적재)
+    stg_locations    존 메타데이터 (EBS에 적재, CloudFront 직접 접근)
         ↓
     warehouse.duckdb (EBS)
         ↓
+    [사용자 S3 버킷 삭제]
+        ↓
     ClawData Agent   Staging 직접 쿼리 + 시각화
 ```
+
+> **데이터 수집 1회성 절차** (반복 불필요)
+> 1. CloudShell에서 parquet 60개를 사용자 S3 버킷으로 다운로드
+> 2. EC2에서 `dbt run` 실행 → warehouse.duckdb (EBS) 적재
+> 3. 사용자 S3 버킷 삭제 (EBS에 데이터 영속)
 
 **Materialization 결정: `table` (S3 Direct Query 배제)**
 
@@ -181,8 +196,8 @@ SELECT COUNT(*) - COUNT(DISTINCT ...) AS duplicate_count FROM stg_trips;
 | 전체 검증 | 전체 데이터 | dbt run 완료 후 1회만 수행 |
 
 ```sql
--- 샘플 파티션 DQ 체크 예시
-SELECT * FROM read_parquet('s3://nyc-tlc/trip data/yellow_tripdata_2023-01.parquet')
+-- 샘플 파티션 DQ 체크 예시 (적재 후 EBS에서 실행)
+SELECT * FROM stg_trips
 WHERE fare_amount < 0 OR passenger_count = 0 OR trip_distance <= 0
 LIMIT 1000;
 ```
@@ -240,8 +255,12 @@ Phase 1과 Phase 2를 비교하기 위해 기록한다.
 
 ## 10. 다음 단계
 
-- [ ] SAD 작성 (아키텍처 결정 근거 상세화)
-- [ ] EC2 인스턴스 설정
-- [ ] S3 데이터 접근 확인 (RODA 퍼블릭 버킷)
-- [ ] dbt 프로젝트 초기화
-- [ ] Staging 모델 작성 (stg_trips, stg_locations)
+- [x] SAD 작성 (아키텍처 결정 근거 상세화)
+- [x] EC2 인스턴스 설정 (c7i-flex.large, Tailscale, OpenClaw Gateway)
+- [x] dbt 프로젝트 초기화
+- [x] Staging 모델 작성 (stg_trips, stg_locations)
+- [ ] S3 버킷 생성 및 CloudShell로 parquet 60개 업로드
+- [ ] EC2 S3 접근 설정 (AWS credentials)
+- [ ] dbt run 실행 → warehouse.duckdb 적재
+- [ ] S3 버킷 삭제
+- [ ] ClawData Agent 연동 검증 (벤치마크 쿼리 Q1~Q5)
