@@ -20,7 +20,8 @@ ClawData 에이전트를 통한 데이터 분석 워크플로우를 검증한다
 - 대상: Yellow Taxi Trip Records
 - 기간: 2019년 1월 ~ 2023년 12월 (5년치)
 - 예상 규모: 약 2억 건 / 약 25GB (Parquet 압축 기준)
-- 선정 이유: t3.medium (4GB RAM) 메모리 제약 챌린지 유효화, COVID-19(2020~2021) 기간 데이터 패턴 변화 포함
+- 선정 이유: c7i-flex.large (4GB RAM) 메모리 제약 챌린지 유효화, COVID-19(2020~2021) 기간 데이터 패턴 변화 포함
+- 인스턴스 선정 이유: t3.medium 동일 RAM(4GB), Intel Sapphire Rapids 아키텍처로 컴퓨팅 성능 우수, 네트워크 최대 12.5Gbps
 
 ### 주요 컬럼
 | 컬럼 | 설명 |
@@ -45,7 +46,7 @@ ClawData 에이전트를 통한 데이터 분석 워크플로우를 검증한다
 
 | 구성 요소 | 선택 | 근거 |
 |----------|------|------|
-| 인프라 | AWS EC2 t3.medium | 리소스 제약 챌린지, 비용 최소화 |
+| 인프라 | AWS EC2 c7i-flex.large | 리소스 제약 챌린지, t3.medium 동일 RAM(4GB) |
 | 스토리지 | AWS EBS | EC2 stop 시 데이터 유지 |
 | 원본 데이터 | S3 RODA | 로컬 디스크 불필요, 무료 공개 데이터 |
 | 쿼리 엔진 | DuckDB | 컬럼형 OLAP, S3 직접 쿼리, 설정 zero |
@@ -71,7 +72,7 @@ S3 (NYC Taxi RODA Parquet)
 
 **Materialization 결정: `table` (S3 Direct Query 배제)**
 
-t3.medium 네트워크 대역폭(최대 5Gbps)과 S3 API 지연을 고려할 때,
+c7i-flex.large 네트워크 대역폭(최대 5Gbps)과 S3 API 지연을 고려할 때,
 S3 Direct Query(httpfs) 방식으로는 Q1~Q3 2초 SLA 달성이 불가능에 가깝다.
 Parquet Projection/Filter Pushdown이 작동하더라도 I/O 병목이 발생한다.
 따라서 dbt run 시 EBS로 전량 적재(table)하는 것을 기본 전제로 한다.
@@ -109,7 +110,7 @@ stg_trips + stg_locations
 
 | 제약 | 내용 | 목적 |
 |------|------|------|
-| 인스턴스 | t3.medium (2 vCPU, 4GB RAM) | Out-of-Core 처리 강제 |
+| 인스턴스 | c7i-flex.large (2 vCPU, 4GB RAM, 최대 12.5Gbps) | Out-of-Core 처리 강제 |
 | 단순 집계 쿼리 SLA | 2초 이내 (Q1~Q3) | 쿼리 플랜 최적화 유도 |
 | 복합 쿼리 SLA | 5초 이내 (Q4~Q5) | 파티셔닝/정렬 전략 유도 |
 | Staging 재처리 금지 | dbt run은 최초 1회 원칙 | Incremental 전략 유도 |
@@ -122,7 +123,7 @@ stg_trips + stg_locations
 ```sql
 SET memory_limit = '3GB';           -- RAM 4GB 중 OS 여유분 확보
 SET temp_directory = '/tmp/duckdb'; -- 스필(Spill) 디렉토리 명시
-SET threads = 2;                    -- t3.medium vCPU 수에 맞춤
+SET threads = 2;                    -- c7i-flex.large vCPU 수에 맞춤
 ```
 
 > SAD에서 설정값 근거를 상세히 기술한다.

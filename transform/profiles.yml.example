@@ -11,6 +11,6 @@ nyc_taxi:
       settings:
         memory_limit: '3GB'
         temp_directory: '/tmp/duckdb_spill'
-        threads: 2
+        threads: 2  # c7i-flex.large vCPU 수
         s3_region: 'us-east-1'
         s3_endpoint: 's3.amazonaws.com'
