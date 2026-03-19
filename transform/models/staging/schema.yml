@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: stg_trips
+    description: "정제된 Yellow Taxi 운행 데이터 (2019-2023)"
+    columns:
+      - name: pickup_at
+        description: "승차 시각"
+        tests: [not_null]
+      - name: dropoff_at
+        description: "하차 시각"
+        tests: [not_null]
+      - name: trip_distance
+        description: "운행 거리 (마일)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false
+      - name: passenger_count
+        description: "탑승 인원"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 9
+      - name: pickup_location_id
+        description: "승차 존 ID"
+        tests: [not_null]
+      - name: dropoff_location_id
+        description: "하차 존 ID"
+        tests: [not_null]
+      - name: fare_amount
+        description: "요금"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+
+  - name: stg_locations
+    description: "Taxi Zone 메타데이터"
+    columns:
+      - name: location_id
+        description: "존 ID"
+        tests: [not_null, unique]
+      - name: zone_name
+        description: "존 이름"
+        tests: [not_null]
+      - name: borough
+        description: "자치구"
+        tests: [not_null]
