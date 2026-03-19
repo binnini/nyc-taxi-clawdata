@@ -1,0 +1,21 @@
+# DuckDB 데이터 파일
+*.duckdb
+*.duckdb.wal
+
+# DuckDB 스필 임시 파일
+duckdb_spill/
+
+# dbt
+target/
+dbt_packages/
+logs/
+.dbt/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 환경 변수
+.env
+profiles.yml   # DB 자격증명 포함 가능, 별도 관리
