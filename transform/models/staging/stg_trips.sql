@@ -1,12 +1,15 @@
 {{
     config(
-        materialized='table',
+        materialized='incremental',
+        incremental_strategy='append',
         order_by=['pickup_at', 'pickup_location_id']
     )
 }}
 
+{% set current_year = var('year', 2019) %}
+
 SELECT
-    vendor_id,
+    "VendorID"                                        AS vendor_id,
     tpep_pickup_datetime                              AS pickup_at,
     tpep_dropoff_datetime                             AS dropoff_at,
     passenger_count::INTEGER                          AS passenger_count,
@@ -17,66 +20,9 @@ SELECT
     tip_amount::DOUBLE                                AS tip_amount,
     total_amount::DOUBLE                              AS total_amount
 FROM read_parquet([
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-01.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-02.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-03.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-04.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-05.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-06.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-07.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-08.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-09.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-10.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-11.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2019-12.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2020-01.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2020-02.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2020-03.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2020-04.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2020-05.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2020-06.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2020-07.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2020-08.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2020-09.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2020-10.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2020-11.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2020-12.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-01.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-02.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-03.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-04.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-05.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-06.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-07.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-08.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-09.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-10.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-11.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2021-12.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-01.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-02.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-03.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-04.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-05.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-06.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-07.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-08.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-09.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-10.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-11.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2022-12.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-01.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-02.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-03.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-04.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-05.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-06.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-07.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-08.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-09.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-10.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-11.parquet',
-    'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2023-12.parquet'
+    {% for month in range(1, 13) %}
+    's3://s3-nyc-taxi/trip-data/yellow_tripdata_{{ current_year }}-{{ "%02d" % month }}.parquet'{{ "," if not loop.last }}
+    {% endfor %}
 ], union_by_name=true)
 WHERE
     tpep_pickup_datetime IS NOT NULL
@@ -85,4 +31,4 @@ WHERE
     AND trip_distance > 0
     AND fare_amount >= 0
     AND passenger_count BETWEEN 1 AND 9
-    AND EXTRACT(YEAR FROM tpep_pickup_datetime) BETWEEN 2019 AND 2023
+    AND EXTRACT(YEAR FROM tpep_pickup_datetime) = {{ current_year }}
