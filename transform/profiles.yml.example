@@ -1,0 +1,16 @@
+# profiles.yml.example
+# 실제 profiles.yml은 .gitignore에 의해 추적되지 않습니다.
+# EC2에서 아래 내용을 복사하여 profiles.yml로 저장하세요.
+
+nyc_taxi:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: /workspace/nyc-taxi/warehouse.duckdb
+      settings:
+        memory_limit: '3GB'
+        temp_directory: '/tmp/duckdb_spill'
+        threads: 2
+        s3_region: 'us-east-1'
+        s3_endpoint: 's3.amazonaws.com'

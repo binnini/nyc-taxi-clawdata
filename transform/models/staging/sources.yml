@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: nyc_taxi_raw
+    description: "NYC Taxi RODA S3 Parquet 원본 데이터"
+    tables:
+      - name: yellow_trips
+        description: "Yellow Taxi Trip Records 2019-2023"
+        meta:
+          s3_path: "s3://nyc-tlc/trip data/yellow_tripdata_*.parquet"
+
+      - name: taxi_zones
+        description: "Taxi Zone Lookup (LocationID → Borough/Zone)"
+        meta:
+          s3_path: "s3://nyc-tlc/misc/taxi_zone_lookup.csv"
