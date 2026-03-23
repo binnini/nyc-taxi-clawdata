@@ -9,7 +9,7 @@
 SELECT
     vendor_id,
     COUNT(*) AS trip_count
-FROM staging.stg_trips
+FROM main_staging.stg_trips
 GROUP BY vendor_id
 ORDER BY vendor_id;
 
@@ -19,7 +19,7 @@ ORDER BY vendor_id;
 SELECT
     passenger_count,
     AVG(total_amount) AS avg_total_amount
-FROM staging.stg_trips
+FROM main_staging.stg_trips
 GROUP BY passenger_count
 ORDER BY passenger_count;
 
@@ -30,7 +30,7 @@ SELECT
     passenger_count,
     EXTRACT(YEAR FROM pickup_at) AS year,
     COUNT(*) AS trip_count
-FROM staging.stg_trips
+FROM main_staging.stg_trips
 GROUP BY passenger_count, year
 ORDER BY passenger_count, year;
 
@@ -42,7 +42,7 @@ SELECT
     EXTRACT(YEAR FROM pickup_at)  AS year,
     ROUND(trip_distance)          AS distance_bucket,
     COUNT(*)                      AS trip_count
-FROM staging.stg_trips
+FROM main_staging.stg_trips
 GROUP BY passenger_count, year, distance_bucket
 ORDER BY year, trip_count DESC;
 
@@ -53,8 +53,8 @@ SELECT
     l.borough,
     l.zone,
     COUNT(*) AS trip_count
-FROM staging.stg_trips t
-JOIN staging.stg_locations l
+FROM main_staging.stg_trips t
+JOIN main_staging.stg_locations l
   ON t.pickup_location_id = l.location_id
 GROUP BY l.borough, l.zone
 ORDER BY trip_count DESC
