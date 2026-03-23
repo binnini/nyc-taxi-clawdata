@@ -4,6 +4,9 @@ models:
   - name: stg_trips
     description: "정제된 Yellow Taxi 운행 데이터 (2019-2023)"
     columns:
+      - name: vendor_id
+        description: "벤더 ID"
+        tests: [not_null]
       - name: pickup_at
         description: "승차 시각"
         tests: [not_null]
@@ -26,10 +29,20 @@ models:
               max_value: 9
       - name: pickup_location_id
         description: "승차 존 ID"
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_locations')
+              field: location_id
+              severity: warn
       - name: dropoff_location_id
         description: "하차 존 ID"
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_locations')
+              field: location_id
+              severity: warn
       - name: fare_amount
         description: "요금"
         tests:
@@ -37,6 +50,16 @@ models:
           - dbt_utils.accepted_range:
               min_value: 0
               inclusive: true
+      - name: tip_amount
+        description: "팁"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: total_amount
+        description: "총 결제 금액"
+        tests: [not_null]
 
   - name: stg_locations
     description: "Taxi Zone 메타데이터"
