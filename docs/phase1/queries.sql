@@ -51,11 +51,11 @@ ORDER BY year, trip_count DESC;
 -- ============================================================
 SELECT
     l.borough,
-    l.zone,
+    l.zone_name,
     COUNT(*) AS trip_count
 FROM main_staging.stg_trips t
 JOIN main_staging.stg_locations l
   ON t.pickup_location_id = l.location_id
-GROUP BY l.borough, l.zone
+GROUP BY l.borough, l.zone_name
 ORDER BY trip_count DESC
 LIMIT 20;
